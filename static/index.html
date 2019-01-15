@@ -73,7 +73,7 @@
                 methods: {
                     load_employee: function(emp_id) {
                         axios
-                            .get('http://142.93.227.118:8888/api/employees/' + emp_id)
+                            .get('/api/employees/' + emp_id)
                             .then(response => {
                                 this.employee = response.data
                             })
@@ -81,7 +81,7 @@
                     },
                     update_employee: function(emp_id) {
                         axios
-                            .put('http://142.93.227.118:8888/api/employees/' + emp_id, this.employee)
+                            .put('/api/employees/' + emp_id, this.employee)
                             .then(response => {
                                 console.log(response)
                                 emp_list.get_employees();
@@ -106,7 +106,7 @@
                             'birthday': this.date
                         }
                         axios
-                            .post('http://142.93.227.118:8888/api/employees', emp)
+                            .post('/api/employees', emp)
                             .then(response => {
                                 console.log(response)
                                 emp_list.get_employees();
@@ -129,13 +129,13 @@
                 methods: {
                     get_employees: function() {
                         axios
-                        .get('http://142.93.227.118:8888/api/employees')
+                        .get('/api/employees')
                         .then(response => (this.info = response.data.employees))
                         .catch(error => console.log(error));
                     },
                     delete_emp: function(emp_id) {
                         axios
-                            .delete('http://142.93.227.118:8888/api/employees/' + emp_id)
+                            .delete('/api/employees/' + emp_id)
                             .then(response => {
                                 this.get_employees();
                             })
