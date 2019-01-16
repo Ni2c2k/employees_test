@@ -22,3 +22,16 @@ def add_employee(emp_dict):
         sex=int(emp_dict['sex']), salary=emp_dict['salary'], hiredate=datetime.datetime.strptime(emp_dict['hiredate'], '%Y-%m-%d'))
     emp.save()
     return emp
+
+
+class Title(BaseModel):
+    title = pw.CharField()
+    from_timestamp = pw.DateTimeField(default=datetime.datetime.now)
+    employee = pw.ForeignKeyField(Employee, backref='titles', on_delete='CASCADE')
+
+
+def add_title(title_json, employee):
+    title = Title(title=title_json['title'],
+        employee=employee)
+    title.save()
+    return title

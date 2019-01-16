@@ -60,7 +60,7 @@
                             <label class="form-check-label" for="inputfemale">female</label>
                         </div>
                         <div class="form-group">
-                            <label for="inputhiredate">Hiredate</label>
+                            <label for="inputhiredate">Hire date</label>
                             <input v-model="employee.hiredate" placeholder="yyyy-mm-hh" id="inputhiredate" class="form-control">
                         </div>
                         <div class="form-group">
@@ -77,11 +77,57 @@
                             Add new Employee
                         </button>
                     </div>
+
+                    <div id="titles-view">
+                        <h3>Titles history</h3>
+                        <ul>
+                            <li v-for="title in titles">
+                                {{ title.title }}
+                            </li>
+                        </ul>
+                        <input v-model="new_title" placeholder="new title">
+                        <button v-on:click="create_title()" class="btn btn-success btn-sm">set new title</button>
+                    </div>
                 </div>
         </div>
     </div>
     <script>
         (function(){
+
+            var titles_view = new Vue({
+                el: '#titles-view',
+                data() {
+                    return {
+                        titles: null,
+                        new_title: '',
+                        emp_id: 0
+                    }
+                },
+                methods: {
+                    get_titles: function(employee_id) {
+                        this.emp_id = employee_id
+                        axios
+                        .get('/api/employees/' + employee_id + '/titles')
+                        .then(response => {
+                            this.titles = response.data.titles
+                            console.log(this.titles)
+                        })
+                        .catch(error => console.log(error))
+                    },
+
+                    create_title: function() {
+                        if (this.new_title.length > 0) {
+                            axios
+                                .post('/api/employees/' + this.emp_id + '/titles', {'title': this.new_title})
+                                .then(response => {
+                                    this.new_title = ''
+                                    this.get_titles(this.emp_id)
+                                })
+                                .catch(error => console.log(error))
+                        }
+                    }
+                }
+            })
 
             var emp_details = new Vue({
                 el: '#app-details',
@@ -168,6 +214,7 @@
                     },
                     edit_emp: function(emp_id) {
                         emp_details.load_employee(emp_id)
+                        titles_view.get_titles(emp_id)
                     }
                 },
                 filters: {

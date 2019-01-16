@@ -8,7 +8,10 @@ from playhouse.shortcuts import model_to_dict
 import playhouse.db_url
 import datetime
 
-db = playhouse.db_url.connect(os.environ.get('EMPDATABASE'))
+# db = playhouse.db_url.connect(os.environ.get('EMPDATABASE'))
+db = pw.SqliteDatabase('sqlite.db', pragmas={
+    'foreign_keys': 1
+})
 
 def converter(obj):
     if isinstance(obj, datetime.date):
@@ -133,10 +136,28 @@ class EmployeeHandler(tornado.web.RequestHandler):
                 'message': 'employee with specified ID not found'
             }})
 
+
+class TitleListHandler(tornado.web.RequestHandler):
+    def get(self, employee_id):
+        query = model.Title.select().join(model.Employee).where(model.Employee.id == employee_id)
+        titles = []
+        for title in query:
+            titles.append({'id': title.id,
+            'title': title.title,
+            'from_timestamp': title.from_timestamp.__str__()})
+        self.write({'titles': titles})
+    def post(self, employee_id):
+        emp = model.Employee.select().where(model.Employee.id == employee_id).get()
+        title = model.add_title(json.loads(self.request.body), emp)
+        self.set_status(201)
+        self.write({'emp': employee_id, 'title_id': title.id})
+
+
 def make_app():
     return tornado.web.Application([
         (r"/", MainHandler),
         (r"/api/employees", EmployeesListHandlerErrorChecking),
+        (r"/api/employees/([0-9]+)/titles", TitleListHandler),
         (r"/api/employees/([0-9]+)", EmployeeHandler),
         (r"/(.*)", tornado.web.StaticFileHandler, {"path": r"{0}".format(os.path.join(os.path.dirname(__file__), "static"))})
     ],
@@ -146,7 +167,7 @@ def make_app():
 if __name__ == "__main__":
 
     model.proxy.initialize(db)
-    db.create_tables([model.Employee])
+    db.create_tables([model.Employee, model.Title])
 
     app = make_app()
     app.listen(int(os.environ.get('EMPPORT')))
