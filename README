@@ -1,0 +1,18 @@
+Tornado + Vue + SQLite + Peewee test project
+
+1. Install Python prerequisites
+
+   pip3 install -r requirements.txt
+
+2. Specify port number using environment variable EMPPORT
+
+3. Run
+
+   EMPPORT=8888 python3 app.py
+
+4. Open http://localhost:8888/ in your web browser
+
+
+TODO:
+1. User input validation
+2. Inform user if request failed
