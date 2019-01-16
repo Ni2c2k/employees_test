@@ -17,7 +17,7 @@ def converter(obj):
 
 def is_date_correct(date):
     try:
-        birthday = datetime.datetime.strptime(date, '%Y-%m-%d')
+        datetime.datetime.strptime(date, '%Y-%m-%d')
     except ValueError:
         return False
     return True
@@ -35,17 +35,12 @@ class EmployeesListHandler(tornado.web.RequestHandler):
             emps_data.append({'id': emp.id, 
             'name': emp.name, 
             'birthday': emp.birthday.__str__(),
-            'sex': emp.sex})
+            'sex': emp.sex,
+            'salary': emp.salary})
         self.write({'employees': emps_data})
 
     def post(self):
-        employee = json.loads(self.request.body)
-        name = employee['name']
-        sex = 0
-        if 'sex' in employee:
-            sex = int(employee['sex'])
-        birthday = datetime.datetime.strptime(employee['birthday'], '%Y-%m-%d')
-        emp = model.add_employee(name, birthday, sex)
+        emp = model.add_employee(json.loads(self.request.body))
         self.set_status(201)
         self.write({'Location': 'http://localhost:8888/api/employees/{0}'.format(emp.id)})
 
@@ -57,37 +52,31 @@ class EmployeesListHandlerErrorChecking(EmployeesListHandler):
     def post(self):
         try:
             employee = json.loads(self.request.body)
-            if 'name' not in employee:
-                self.set_status(400)
-                self.write({'error': {
-                    'code': 'MissingArgument',
-                    'message': 'name should be specified'
-                }})
-                return
 
-            if 'birthday' not in employee:
-                self.set_status(400)
-                self.write({'error': {
-                    'code': 'MissingArgument',
-                    'message': 'birthday should be specified'
-                }})
-                return
+            for param in ['name', 'birthday', 'sex', 'salary', 'hiredate']:
+                if param not in employee:
+                    self.set_status(400)
+                    self.write({
+                        'error': {
+                            'code': 'MissingArgument',
+                            'message': '{0} should be specified'.format(param)
+                        }
+                    })
+                    return
             
-            if not is_date_correct(employee['birthday']):
-                self.set_status(500)
+            if not is_date_correct(employee['birthday']) or not is_date_correct(employee['hiredate']):
+                self.set_status(400)
                 self.write({'error' :{
                     'code': 'BadArguments',
                     'message': 'date should be in YYYY-mm-dd format'
                 }})
                 return
             
-            sex = 0
-            if 'sex' in employee:
-                sex = int(employee['sex'])
+            sex = int(employee['sex'])
             if sex < 0 or sex > 4:
                 self.set_status(400)
                 self.write({'error': {
-                    'code': 'MissingArgument',
+                    'code': 'BadArguments',
                     'message': 'bad sex value'
                 }})
                 return
@@ -133,6 +122,8 @@ class EmployeeHandler(tornado.web.RequestHandler):
                 }})
                 return
             emp.birthday = datetime.datetime.strptime(employee['birthday'], '%Y-%m-%d')
+            emp.hiredate = datetime.datetime.strptime(employee['hiredate'], '%Y-%m-%d')
+            emp.salary = employee['salary']
             emp.save()
             self.write({'message': employee_id})
         except pw.DoesNotExist:

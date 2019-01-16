@@ -10,50 +10,74 @@
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 </head>
 <body>
-    <div class="container">
+    <div class="container-fluid">
         <div class="row">
-            <div id="app-list" class="col">
+            <div id="app-list" class="col-sm-8">
                 <h2>Employees</h2>
-                <div v-for="emp in info" :key="emp.id">
-                    {{ emp.id }} {{ emp.name }} {{ emp.birthday }} {{ emp.sex | gendertotext}}
-                    <button v-on:click="delete_emp(emp.id)" class="btn btn-danger btn-sm">delete</button>
-                    <button v-on:click="edit_emp(emp.id)" class="btn btn-primary btn-sm">edit</button>
+                <div class="table-responsive">
+                    <table class="table table-sm table-borderless">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Birthday</th>
+                                <th scope="col">Sex</th>
+                                <th scope="col">Salary</th>
+                                <th scope="col"></th>
+                            </tr>
+                        </thead>
+                        <tr v-for="emp in info" :key="emp.id">
+                            <td>{{ emp.name }}</th>
+                            <td>{{ emp.birthday }}</td> 
+                            <td>{{ emp.sex | gendertotext }}</td>
+                            <td>{{ emp.salary }}</td>
+                            <td>
+                                <button v-on:click="delete_emp(emp.id)" class="btn btn-danger btn-sm">delete</button>
+                                <button v-on:click="edit_emp(emp.id)" class="btn btn-primary btn-sm">details</button>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
             </div>
+
             <div class="col">
-            <div id="app-details">
-                <h2>Employee details</h2>
-                <form>
-                <div class="form-group">
-                    <label for="nameInput">Name</label>
-                    <input v-model.trim="employee.name" placeholder="name" id="nameInput" class="form-control">
+                    <div id="app-details">
+                        <h2>Employee details</h2>
+                        <form>
+                        <div class="form-group">
+                            <label for="nameInput">Name</label>
+                            <input v-model.trim="employee.name" placeholder="name" id="nameInput" class="form-control" ref="search">
+                        </div>
+                        <div class="form-group">
+                            <label for="inputdate">Birthday</label>
+                            <input v-model="employee.birthday" placeholder="yyyy-mm-hh" id="inputdate" class="form-control">
+                        </div>
+                        <div class="form-group form-check form-check-inline">
+                            <input type="radio" class="form-check-input" name="sex" id="inputmale" value="1" v-model="employee.sex">
+                            <label class="form-check-label" for="inputmale">male</label>
+                        </div>
+                        <div class="form-group form-check form-check-inline">
+                            <input type="radio" class="form-check-input" name="sex" id="inputfemale" value="2" v-model="employee.sex">
+                            <label class="form-check-label" for="inputfemale">female</label>
+                        </div>
+                        <div class="form-group">
+                            <label for="inputhiredate">Hiredate</label>
+                            <input v-model="employee.hiredate" placeholder="yyyy-mm-hh" id="inputhiredate" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="inputsalary">Salary</label>
+                            <input v-model="employee.salary" id="inputsalary" class="form-control">
+                        </div>
+                        </form>
+                        <button v-on:click="update_employee(employee.id)" :disabled="employee.id < 0" class="btn btn-primary btn-sm btn-block">
+                                <span v-show="put_progress" class="spinner-border spinner-border-sm" role="status"></span>
+                            Edit information
+                        </button>
+                        <button v-on:click="create_emp()" class="btn btn-success btn-sm btn-block">
+                            <span v-show="post_progress" class="spinner-border spinner-border-sm" role="status"></span>
+                            Add new Employee
+                        </button>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="inputdate">Birthday</label>
-                    <input v-model="employee.birthday" placeholder="yyyy-mm-hh" id="inputdate" class="form-control">
-                </div>
-                <div class="form-group form-check form-check-inline">
-                    <input type="radio" class="form-check-input" name="sex" id="inputmale" value="1" v-model="employee.sex">
-                    <label class="form-check-label" for="inputmale">male</label>
-                </div>
-                <div class="form-group form-check form-check-inline">
-                    <input type="radio" class="form-check-input" name="sex" id="inputfemale" value="2" v-model="employee.sex">
-                    <label class="form-check-label" for="inputfemale">female</label>
-                </div>
-                </form>
-                <button v-on:click="update_employee(employee.id)" class="btn btn-primary btn-sm">Edit information</button>
-            </div>
-            </div>
-        </div>
-        <div class="row">
-        <div id="app-insert" class="col">
-            <h1>Add Employee</h1>
-            <input v-model.trim="name" placeholder="name">
-            <input v-model="date" placeholder="yyyy-mm-hh">
-            <input type="radio" name="sex" id="male" value="1" v-model="sex"><label for="male">male</lavel>
-            <input type="radio" name="sex" id="female" value="2" v-model="sex"><label for="female">female</label>
-            <button v-on:click="create_emp()">Create</button>
-        </div>
         </div>
     </div>
     <script>
@@ -66,8 +90,13 @@
                         employee: {
                             name: '',
                             birthday: '',
-                            sex: 1
-                        }
+                            hiredate: '',
+                            sex: 1,
+                            salary: 0,
+                            id: -1
+                        },
+                        put_progress: false,
+                        post_progress: false
                     }
                 },
                 methods: {
@@ -76,42 +105,38 @@
                             .get('/api/employees/' + emp_id)
                             .then(response => {
                                 this.employee = response.data
+                                this.$refs.search.focus()
                             })
                             .catch(error => console.log(error));
                     },
                     update_employee: function(emp_id) {
+                        this.put_progress = true
                         axios
                             .put('/api/employees/' + emp_id, this.employee)
                             .then(response => {
                                 console.log(response)
+                                this.put_progress = false;
                                 emp_list.get_employees();
                             })
-                            .catch(error => console.log(error));
-                    }
-                }
-            })
-            
-            var emp_insert = new Vue({
-                el: '#app-insert',
-                data: {
-                    name: '',
-                    date: '',
-                    sex: 1
-                },
-                methods: {
+                            .catch(error => {
+                                console.log(error)
+                                this.put_progress = false;
+                            });
+                    },
                     create_emp: function() {
-                        var emp = {
-                            'name': this.name,
-                            'sex' : this.sex,
-                            'birthday': this.date
-                        }
+                        this.post_progress = true;
                         axios
-                            .post('/api/employees', emp)
+                            .post('/api/employees', this.employee)
                             .then(response => {
                                 console.log(response)
+                                this.post_progress = false;
+                                this.employee.id = -1;
                                 emp_list.get_employees();
                             })
-                            .catch(error => console.log(error));
+                            .catch(error => {
+                                console.log(error)
+                                this.post_progress = false;
+                            });
                     }
                 }
             })
