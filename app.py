@@ -5,10 +5,10 @@ import os
 import model as model
 import peewee as pw
 from playhouse.shortcuts import model_to_dict
+import playhouse.db_url
 import datetime
-from envparse import env
 
-sqlite = pw.SqliteDatabase('sqlite.db')
+db = playhouse.db_url.connect(os.environ.get('EMPDATABASE'))
 
 def converter(obj):
     if isinstance(obj, datetime.date):
@@ -154,11 +154,9 @@ def make_app():
 
 if __name__ == "__main__":
 
-    model.proxy.initialize(sqlite)
-    sqlite.create_tables([model.Employee])
-
-    env.read_envfile('env.env')
+    model.proxy.initialize(db)
+    db.create_tables([model.Employee])
 
     app = make_app()
-    app.listen(env.int('PORT'))
+    app.listen(int(os.environ.get('EMPPORT')))
     tornado.ioloop.IOLoop.current().start()
